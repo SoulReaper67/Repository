@@ -1,0 +1,2066 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaper's Audio - Reconnaissance Musicale</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <style>
+        :root {
+            --primary: #6d28d9;
+            --primary-dark: #5b21b6;
+            --secondary: #ec4899;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --bg: #ffffff;
+            --bg-alt: #f1f5f9;
+            --radius: 12px;
+            --recording: #ef4444;
+            --recording-dark: #dc2626;
+            --success: #10b981;
+            --success-dark: #059669;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+        }
+
+        .logo svg {
+            margin-right: 0.5rem;
+        }
+        
+        .theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<style>
+        main {
+            flex: 1;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .search-container {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        p.subtitle {
+            color: var(--text-light);
+            margin-bottom: 2rem;
+            font-size: 1.125rem;
+        }
+
+        .record-button {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(109, 40, 217, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .record-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(109, 40, 217, 0.4);
+        }
+
+        .record-button:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 15px rgba(109, 40, 217, 0.3);
+        }
+
+        .record-button.recording {
+            background: linear-gradient(135deg, var(--recording), var(--recording-dark));
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+            animation: pulse-beat 1.5s infinite;
+        }
+
+        @keyframes pulse-beat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .record-button .icon {
+            color: white;
+            font-size: 2.5rem;
+        }
+
+        .record-button .pulse {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: -1;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.7; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .status {
+            margin-top: 1.5rem;
+            font-weight: 500;
+            color: var(--text-light);
+        }
+
+        .loader {
+            display: none;
+            margin: 1rem auto;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(109, 40, 217, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+</style>
+<style>
+        .result-container {
+            background-color: var(--bg-alt);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .song-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .album-art {
+            width: 100px;
+            height: 100px;
+            border-radius: var(--radius);
+            background-color: #ddd;
+            margin-right: 1rem;
+            object-fit: cover;
+        }
+
+        .song-details h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .song-details p {
+            color: var(--text-light);
+            margin-bottom: 0.25rem;
+        }
+
+        .music-controls {
+            display: flex;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .play-button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin-right: 1rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .play-button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .play-button:disabled {
+            background-color: var(--text-light);
+            cursor: not-allowed;
+        }
+
+        .song-progress {
+            flex: 1;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary);
+            border-radius: 2px;
+        }
+
+        .streaming-links {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .streaming-link {
+            background-color: white;
+            color: var(--text);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .streaming-link:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        .streaming-link svg {
+            margin-right: 0.5rem;
+        }
+</style>
+<style>
+        .history {
+            margin-top: 3rem;
+        }
+
+        .history h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .history-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .history-item {
+            background-color: var(--bg-alt);
+            border-radius: var(--radius);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .history-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            margin-right: 0.75rem;
+            object-fit: cover;
+        }
+
+        .history-item-info h4 {
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item-info p {
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+
+        .visualizer {
+            display: none;
+            height: 60px;
+            margin-top: 1rem;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .bar {
+            width: 6px;
+            height: 3px;
+            background: linear-gradient(to top, var(--primary), var(--secondary));
+            border-radius: 3px;
+            transition: height 0.1s ease;
+        }
+
+        .recording .bar {
+            background: linear-gradient(to top, var(--recording-dark), var(--recording));
+        }
+
+        .error-message {
+            color: #e11d48;
+            margin-top: 1rem;
+            display: none;
+            text-align: center;
+        }
+
+        .no-result {
+            text-align: center;
+            color: var(--text-light);
+            margin-top: 2rem;
+            display: none;
+        }
+
+        .no-result svg {
+            margin: 0 auto 1rem;
+            display: block;
+            color: var(--text-light);
+        }
+
+        /* Permission UI */
+        .permission-container {
+            display: none;
+            text-align: center;
+            margin-top: 2rem;
+        }
+
+        .permission-button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius);
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .permission-button:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .record-timer {
+            font-size: 1.25rem;
+            margin-top: 1rem;
+            font-weight: 500;
+            color: var(--primary);
+            display: none;
+        }
+
+        .record-timer.recording {
+            color: var(--recording);
+        }
+
+        .record-progress {
+            width: 180px;
+            height: 6px;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+            margin: 0.5rem auto 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .record-progress-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary);
+            border-radius: 3px;
+            transition: width 0.1s linear;
+        }
+
+        .recording .record-progress-fill {
+            background-color: var(--recording);
+        }
+</style>
+<style>
+        /* Styles pour l'input et l'upload */
+        .input-methods {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .input-heading {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload-container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .file-upload-button {
+            background-color: var(--bg-alt);
+            color: var(--text);
+            border: 2px dashed rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius);
+            padding: 1.5rem 1rem;
+            width: 100%;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .file-upload-button:hover {
+            border-color: var(--primary);
+            background-color: rgba(109, 40, 217, 0.05);
+        }
+
+        .file-upload-button svg {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .file-upload-button p {
+            margin: 0;
+            font-weight: 500;
+        }
+
+        .file-upload-button .file-types {
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .or-divider {
+            display: flex;
+            align-items: center;
+            margin: 2rem 0;
+            color: var(--text-light);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .or-divider::before {
+            margin-right: 1rem;
+        }
+
+        .or-divider::after {
+            margin-left: 1rem;
+        }
+
+        .download-link {
+            display: none;
+            margin-top: 1rem;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .download-link:hover {
+            text-decoration: underline;
+        }
+
+        .file-name-display {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--primary);
+            display: none;
+        }
+
+        /* Styles pour la section d'enregistrement */
+        .recording-controls {
+            margin-top: 1.5rem;
+            display: none;
+        }
+
+        .recording-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .format-selector {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .format-btn {
+            background-color: var(--bg-alt);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .format-btn:hover {
+            background-color: rgba(109, 40, 217, 0.1);
+        }
+
+        .format-btn.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary-dark);
+        }
+
+        .action-btn {
+            background-color: var(--bg-alt);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: var(--text);
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+</style>
+<style>
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .action-btn.primary {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .action-btn.primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .action-btn.success {
+            background-color: var(--success);
+            color: white;
+            border: none;
+        }
+
+        .action-btn.success:hover {
+            background-color: var(--success-dark);
+        }
+
+        .recording-status {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        .audio-preview {
+            width: 100%;
+            max-width: 400px;
+            margin: 1rem auto;
+            border-radius: var(--radius);
+            display: none;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(16, 185, 129, 0.9);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            font-weight: 500;
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 1000;
+            animation: slideUp 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        /* Section pour la musique complète */
+        .full-player {
+            margin-top: 1.5rem;
+            background-color: rgba(0, 0, 0, 0.03);
+            border-radius: var(--radius);
+            padding: 1rem;
+            display: none;
+        }
+
+        .full-player-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+
+        .full-player-container {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+
+        .full-player iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .listen-options {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .listen-btn, .record-song-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .listen-btn:hover, .record-song-btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .record-song-btn {
+            background-color: var(--success);
+        }
+
+        .record-song-btn:hover {
+            background-color: var(--success-dark);
+        }
+
+        /* Responsive styles */
+        @media (max-width: 600px) {
+            h1 { font-size: 1.5rem; }
+            p.subtitle { font-size: 1rem; }
+            .record-button { width: 150px; height: 150px; }
+            .record-progress { width: 150px; }
+            .history-list { grid-template-columns: 1fr; }
+            .streaming-links { justify-content: center; }
+            .recording-actions, .listen-options {
+                flex-direction: column;
+                width: 100%;
+                max-width: 300px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .action-btn, .listen-btn, .record-song-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .full-player-container { height: 250px; }
+        }
+
+        /* Dark theme */
+        body.dark-theme {
+            --primary: #a78bfa;
+            --primary-dark: #8b5cf6;
+            --recording: #f87171;
+            --recording-dark: #ef4444;
+            --success: #34d399;
+            --success-dark: #10b981;
+            --text: #e2e8f0;
+            --text-light: #94a3b8;
+            --bg: #0f172a;
+            --bg-alt: #1e293b;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 18V5l12-2v13"></path>
+                <circle cx="6" cy="18" r="3"></circle>
+                <circle cx="18" cy="16" r="3"></circle>
+            </svg>
+            Reaper's Audio
+        </div>
+        <button class="theme-toggle" aria-label="Changer de thème">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+    </header>
+
+    <main>
+        <div class="search-container">
+            <h1>Reconnaissez n'importe quelle musique</h1>
+            <p class="subtitle">Identifiez instantanément les chansons qui jouent autour de vous</p>
+            
+            <div class="input-methods">
+                <div>
+                    <div class="input-heading">Utiliser le microphone</div>
+                    <button class="record-button" id="recordButton">
+                        <div class="pulse"></div>
+                        <span class="icon" id="recordButtonIcon">
+                            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                        </span>
+                    </button>
+                    <div class="record-progress" id="recordProgress">
+                        <div class="record-progress-fill" id="recordProgressFill"></div>
+                    </div>
+                    <p class="status" id="status">Cliquez pour écouter 60 secondes</p>
+                </div>
+                
+                <div class="or-divider">OU</div>
+                
+                <div class="file-upload-container">
+                    <div class="input-heading">Sélectionner un fichier audio</div>
+                    <label for="fileInput" class="file-upload-button">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p>Cliquez pour importer un fichier</p>
+                        <span class="file-types">MP3, WAV, M4A, etc.</span>
+                    </label>
+                    <div class="file-name-display" id="fileNameDisplay">Nom du fichier</div>
+                    <input type="file" id="fileInput" accept="audio/*">
+                </div>
+            </div>
+            
+            <div class="record-timer" id="recordTimer">00:00</div>
+            <div class="loader" id="loader"></div>
+            <div class="error-message" id="errorMessage">Une erreur s'est produite. Veuillez réessayer.</div>
+            <div class="visualizer" id="visualizer">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+            
+            <div class="permission-container" id="permissionContainer">
+                <p>Nous avons besoin d'accéder à votre microphone pour identifier les chansons.</p>
+                <button class="permission-button" id="permissionButton">Autoriser l'accès au microphone</button>
+            </div>
+            
+            <!-- Contrôles d'enregistrement -->
+            <div class="recording-controls" id="recordingControls">
+                <audio id="audioPreview" class="audio-preview" controls></audio>
+                
+                <div class="format-selector">
+                    <button class="format-btn active" data-format="mp3">MP3</button>
+                    <button class="format-btn" data-format="wav">WAV</button>
+                    <button class="format-btn" data-format="mp4">MP4</button>
+                </div>
+                
+                <div class="recording-actions">
+                    <button class="action-btn" id="newRecordingBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="16"></line>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                        Nouvel enregistrement
+                    </button>
+                    <button class="action-btn primary" id="saveRecordingBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                        Sauvegarder
+                    </button>
+                </div>
+                
+                <p class="recording-status" id="recordingStatus">Enregistrement capturé. Vous pouvez l'écouter et le sauvegarder.</p>
+            </div>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+            <div class="song-info">
+                <img src="" alt="Album Cover" class="album-art" id="albumArt">
+                <div class="song-details">
+                    <h2 id="songTitle">Titre de la chanson</h2>
+                    <p id="artist">Artiste</p>
+                    <p id="album">Album • Année</p>
+                </div>
+            </div>
+            
+            <div class="music-controls">
+                <button class="play-button" id="playButton">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </button>
+                <div class="song-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="streaming-links" id="streamingLinks">
+                <!-- Les liens de streaming seront ajoutés dynamiquement -->
+            </div>
+            <div class="listen-options">
+                <button class="listen-btn" id="listenFullBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Écouter en entier
+                </button>
+                <button class="record-song-btn" id="recordSongBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Enregistrer la chanson
+                </button>
+            </div>
+            
+            <!-- Lecteur pour la musique complète -->
+            <div class="full-player" id="fullPlayer">
+                <div class="full-player-title">Écoutez la version complète:</div>
+                <div class="full-player-container" id="fullPlayerContainer">
+                    <!-- iframe sera injecté ici -->
+                </div>
+            </div>
+            
+            <a href="#" class="download-link" id="downloadLink" target="_blank">Télécharger le titre</a>
+        </div>
+
+        <div class="no-result" id="noResult">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <p>Désolé, nous n'avons pas pu identifier cette chanson.<br>Veuillez essayer à nouveau.</p>
+        </div>
+
+        <div class="history">
+            <h3>Récemment identifiés</h3>
+            <div class="history-list" id="historyList">
+                <!-- Les éléments de l'historique seront ajoutés dynamiquement -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast notification -->
+    <div class="toast" id="toast">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span id="toastMessage">Enregistrement sauvegardé avec succès</span>
+    </div>
+
+    <script>
+        // Configuration de l'API AudD avec votre token
+        const AUDD_API_TOKEN = "447cad23e8469dec4450155ed1e1148a";
+        const AUDD_API_URL = "https://api.audd.io/";
+        
+        // Définir la durée d'enregistrement en secondes
+        const RECORDING_DURATION = 60;
+
+        // Sélectionner les éléments DOM
+        const recordButton = document.getElementById('recordButton');
+        const recordButtonIcon = document.getElementById('recordButtonIcon');
+        const recordProgress = document.getElementById('recordProgress');
+        const recordProgressFill = document.getElementById('recordProgressFill');
+        const status = document.getElementById('status');
+        const visualizer = document.getElementById('visualizer');
+        const resultContainer = document.getElementById('resultContainer');
+        const albumArt = document.getElementById('albumArt');
+        const songTitle = document.getElementById('songTitle');
+        const artist = document.getElementById('artist');
+        const album = document.getElementById('album');
+        const playButton = document.getElementById('playButton');
+        const progressFill = document.getElementById('progressFill');
+        const historyList = document.getElementById('historyList');
+        const themeToggle = document.querySelector('.theme-toggle');
+        const pulse = document.querySelector('.pulse');
+        const bars = document.querySelectorAll('.bar');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('errorMessage');
+        const noResult = document.getElementById('noResult');
+        const permissionContainer = document.getElementById('permissionContainer');
+        const permissionButton = document.getElementById('permissionButton');
+        const streamingLinks = document.getElementById('streamingLinks');
+        const recordTimer = document.getElementById('recordTimer');
+        const fileInput = document.getElementById('fileInput');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const downloadLink = document.getElementById('downloadLink');
+        // Nouveaux éléments pour l'enregistrement
+        const recordingControls = document.getElementById('recordingControls');
+        const formatButtons = document.querySelectorAll('.format-btn');
+        const audioPreview = document.getElementById('audioPreview');
+        const newRecordingBtn = document.getElementById('newRecordingBtn');
+        const saveRecordingBtn = document.getElementById('saveRecordingBtn');
+        const recordingStatus = document.getElementById('recordingStatus');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        // Nouveaux éléments pour la lecture complète
+        const listenFullBtn = document.getElementById('listenFullBtn');
+        const recordSongBtn = document.getElementById('recordSongBtn');
+        const fullPlayer = document.getElementById('fullPlayer');
+        const fullPlayerContainer = document.getElementById('fullPlayerContainer');
+
+        // Variables pour l'enregistrement audio
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioContext;
+        let audioStream;
+        let analyser;
+        let microphone;
+        let audioPlayer;
+        let currentSong = null;
+        let recordedAudioBlob = null;
+        let selectedFormat = 'mp3';
+        
+        // Variables pour l'enregistrement de chansons
+        let audioRecorder = null;
+        let isRecordingSong = false;
+        let songAudioChunks = [];
+
+        // État de l'application
+        let isRecording = false;
+        let canRecord = true;
+        let isPlaying = false;
+        let visualizerInterval;
+        let recordingTimeout;
+        let timerInterval;
+        let recordingStartTime;
+        let recordingDuration = 0;
+        let progressInterval;
+        let microphoneAccessRequested = false;
+
+        // Chargement des résultats précédents depuis le stockage local
+        let searchHistory = JSON.parse(localStorage.getItem('searchHistory')) || [];
+        renderHistory();
+
+        // Initialiser l'application
+        initializeApp();
+
+        function initializeApp() {
+            // Vérifier si le navigateur prend en charge la MediaRecorder API
+            if (!navigator.mediaDevices || !window.MediaRecorder) {
+                status.textContent = "Votre navigateur ne prend pas en charge l'enregistrement audio.";
+                recordButton.disabled = true;
+                return;
+            }
+
+            // Ajouter les écouteurs d'événements
+            recordButton.addEventListener('click', startRecordingSession);
+            playButton.addEventListener('click', togglePlay);
+            themeToggle.addEventListener('click', toggleTheme);
+            permissionButton.addEventListener('click', requestMicrophoneAccess);
+            fileInput.addEventListener('change', handleFileUpload);
+            
+            // Écouteurs pour les fonctionnalités d'enregistrement
+            formatButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    formatButtons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    selectedFormat = btn.dataset.format;
+                });
+            });
+            
+            newRecordingBtn.addEventListener('click', resetRecordingState);
+            saveRecordingBtn.addEventListener('click', saveRecording);
+            
+            // Écouteurs pour la lecture complète
+            listenFullBtn.addEventListener('click', showFullPlayer);
+            recordSongBtn.addEventListener('click', toggleSongRecording);
+
+            // Créer un élément audio pour la lecture
+            audioPlayer = new Audio();
+            audioPlayer.addEventListener('ended', () => {
+                isPlaying = false;
+                playButton.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+                progressFill.style.width = "0%";
+            });
+            
+            audioPlayer.addEventListener('timeupdate', () => {
+                const percentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progressFill.style.width = `${percentage}%`;
+            });
+
+            // Demander automatiquement l'accès au microphone
+            requestMicrophoneAccessOnLoad();
+        }
+        // Demander automatiquement l'accès au microphone au chargement
+        function requestMicrophoneAccessOnLoad() {
+            if (microphoneAccessRequested) return;
+            
+            microphoneAccessRequested = true;
+            
+            // Vérifier d'abord si l'autorisation est déjà accordée
+            navigator.permissions.query({ name: 'microphone' })
+                .then(permissionStatus => {
+                    if (permissionStatus.state === 'granted') {
+                        setupAudioContext();
+                    } else {
+                        // Demander l'autorisation automatiquement
+                        navigator.mediaDevices.getUserMedia({ audio: true })
+                            .then(stream => {
+                                // Arrêter le flux immédiatement
+                                stream.getTracks().forEach(track => track.stop());
+                                setupAudioContext();
+                                permissionContainer.style.display = 'none';
+                            })
+                            .catch(error => {
+                                console.error("Erreur d'accès au microphone:", error);
+                                permissionContainer.style.display = 'block';
+                            });
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur lors de la vérification des permissions:", error);
+                    permissionContainer.style.display = 'block';
+                });
+        }
+
+        // Demander l'accès au microphone (via bouton)
+        async function requestMicrophoneAccess() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop()); // Arrêter le flux immédiatement
+                permissionContainer.style.display = 'none';
+                setupAudioContext();
+            } catch (error) {
+                console.error("Erreur d'accès au microphone:", error);
+                status.textContent = "Impossible d'accéder au microphone.";
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        // Configurer le contexte audio
+        function setupAudioContext() {
+            try {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioContext();
+                
+                // Prêt à enregistrer
+                status.textContent = "Cliquez pour écouter 30 secondes";
+            } catch (error) {
+                console.error("Erreur lors de la configuration du contexte audio:", error);
+                status.textContent = "Erreur lors de l'initialisation de l'audio.";
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        // Obtenir le type MIME supporté pour l'enregistrement
+        function getSupportedMimeType() {
+            if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+                return 'audio/webm;codecs=opus';
+            } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+                return 'audio/ogg;codecs=opus';
+            } else {
+                return 'audio/webm';
+            }
+        }
+
+        // Fonction pour démarrer une session d'enregistrement
+        async function startRecordingSession() {
+            if (!canRecord) return;
+            if (isRecording) return;
+            
+            canRecord = false; // Éviter les clics multiples
+            
+            try {
+                // Cacher les éléments précédents
+                resultContainer.style.display = "none";
+                noResult.style.display = "none";
+                errorMessage.style.display = "none";
+                recordingControls.style.display = "none";
+                fullPlayer.style.display = "none";
+                
+                // Commencer l'enregistrement
+                await startRecording();
+                
+                // Arrêter automatiquement après la durée spécifiée
+                recordingTimeout = setTimeout(() => {
+                    if (isRecording) {
+                        stopRecording();
+                    }
+                }, RECORDING_DURATION * 1000);
+            } catch (error) {
+                console.error("Erreur lors de l'enregistrement:", error);
+                status.textContent = "Erreur lors de l'enregistrement.";
+                errorMessage.style.display = 'block';
+                resetRecordingState();
+            }
+        }
+        // Fonction pour démarrer l'enregistrement
+        async function startRecording() {
+            try {
+                // Obtenir le flux audio
+                audioStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    } 
+                });
+                
+                // Configurer l'analyseur pour la visualisation
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+                
+                microphone = audioContext.createMediaStreamSource(audioStream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                microphone.connect(analyser);
+                
+                // Préparer l'enregistreur
+                const options = { mimeType: getSupportedMimeType() };
+                mediaRecorder = new MediaRecorder(audioStream, options);
+                
+                audioChunks = [];
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+                
+                // Démarrer l'enregistrement
+                mediaRecorder.start();
+                isRecording = true;
+                status.textContent = "Enregistrement en cours...";
+                visualizer.style.display = "flex";
+                visualizer.classList.add('recording');
+                recordTimer.style.display = "block";
+                recordTimer.classList.add('recording');
+                recordProgress.style.display = "block";
+                recordProgressFill.style.width = "0%";
+                
+                // Changer l'apparence du bouton en mode enregistrement
+                recordButton.classList.add('recording');
+                recordButton.disabled = true;
+                
+                // Changer l'icône pour un carré d'arrêt
+                recordButtonIcon.innerHTML = `
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="6" y="6" width="12" height="12"></rect>
+                    </svg>
+                `;
+                
+                // Démarrer le chronomètre
+                recordingStartTime = Date.now();
+                updateTimer();
+                timerInterval = setInterval(updateTimer, 1000);
+                
+                // Mettre à jour la barre de progression
+                startProgressBar();
+                
+                // Animer le bouton
+                pulse.style.animation = "pulse 1.5s infinite";
+                
+                // Démarrer l'animation de l'égaliseur
+                startVisualizer();
+            } catch (error) {
+                console.error("Erreur lors de l'enregistrement:", error);
+                throw error;
+            }
+        }
+
+        // Démarrer la barre de progression
+        function startProgressBar() {
+            let progress = 0;
+            progressInterval = setInterval(() => {
+                progress += 100 / (RECORDING_DURATION * 10); // Mise à jour 10 fois par seconde
+                recordProgressFill.style.width = `${Math.min(progress, 100)}%`;
+            }, 100);
+        }
+
+        // Mettre à jour le chronomètre
+        function updateTimer() {
+            if (!isRecording) return;
+            
+            const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+            recordingDuration = elapsed;
+            
+            const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+            const seconds = (elapsed % 60).toString().padStart(2, '0');
+            
+            recordTimer.textContent = `${minutes}:${seconds} / 00:${RECORDING_DURATION.toString().padStart(2, '0')}`;
+        }
+        // Fonction pour arrêter l'enregistrement
+        function stopRecording() {
+            if (!isRecording) return;
+            
+            clearTimeout(recordingTimeout);
+            clearInterval(timerInterval);
+            clearInterval(progressInterval);
+            
+            try {
+                mediaRecorder.stop();
+                isRecording = false;
+                status.textContent = "Analyse en cours...";
+                visualizer.style.display = "none";
+                visualizer.classList.remove('recording');
+                recordTimer.style.display = "none";
+                recordTimer.classList.remove('recording');
+                recordProgress.style.display = "none";
+                loader.style.display = "block";
+                
+                // Restaurer l'apparence du bouton
+                recordButton.classList.remove('recording');
+                recordButton.disabled = false;
+                
+                // Restaurer l'icône du microphone
+                recordButtonIcon.innerHTML = `
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="23"></line>
+                        <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                `;
+                
+                // Arrêter l'animation du bouton
+                pulse.style.animation = "none";
+                
+                // Arrêter l'animation de l'égaliseur
+                stopVisualizer();
+                
+                // Traiter l'audio enregistré
+                mediaRecorder.onstop = async () => {
+                    // Arrêter les pistes audio
+                    if (audioStream) {
+                        audioStream.getTracks().forEach(track => track.stop());
+                    }
+                    
+                    // Créer un blob audio
+                    const audioBlob = new Blob(audioChunks, { type: getSupportedMimeType() });
+                    recordedAudioBlob = audioBlob; // Stocker pour l'enregistrement
+                    
+                    // Configurer l'aperçu audio
+                    const audioURL = URL.createObjectURL(audioBlob);
+                    audioPreview.src = audioURL;
+                    audioPreview.style.display = "block";
+                    
+                    // Si l'enregistrement est trop court, ne pas l'envoyer
+                    if (recordingDuration < 1) {
+                        status.textContent = "Enregistrement trop court, veuillez réessayer.";
+                        loader.style.display = "none";
+                        canRecord = true; // Permettre un nouvel enregistrement
+                        return;
+                    }
+                    
+                    // Envoyer le blob à AudD pour identification
+                    try {
+                        await identifySongWithAudD(audioBlob);
+                        
+                        // Afficher les contrôles d'enregistrement
+                        recordingControls.style.display = "block";
+                        
+                        setTimeout(() => {
+                            canRecord = true; // Permettre un nouvel enregistrement après 2 secondes
+                        }, 2000);
+                    } catch (error) {
+                        console.error("Erreur lors de l'identification:", error);
+                        status.textContent = "Erreur lors de l'identification.";
+                        errorMessage.style.display = 'block';
+                        loader.style.display = "none";
+                        canRecord = true; // Permettre un nouvel enregistrement
+                    }
+                };
+            } catch (error) {
+                console.error("Erreur lors de l'arrêt de l'enregistrement:", error);
+                status.textContent = "Erreur lors de l'enregistrement.";
+                errorMessage.style.display = 'block';
+                loader.style.display = "none";
+                resetRecordingState();
+            }
+        }
+        // Réinitialiser l'état d'enregistrement
+        function resetRecordingState() {
+            isRecording = false;
+            canRecord = true;
+            
+            // Arrêter les flux et intervalles
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+            }
+            
+            clearTimeout(recordingTimeout);
+            clearInterval(timerInterval);
+            clearInterval(progressInterval);
+            stopVisualizer();
+            
+            // Restaurer l'interface
+            recordButton.classList.remove('recording');
+            recordButton.disabled = false;
+            recordButtonIcon.innerHTML = `
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+            `;
+            
+            visualizer.style.display = "none";
+            visualizer.classList.remove('recording');
+            recordTimer.style.display = "none";
+            recordTimer.classList.remove('recording');
+            recordProgress.style.display = "none";
+            pulse.style.animation = "none";
+            loader.style.display = "none";
+            recordingControls.style.display = "none";
+            fullPlayer.style.display = "none";
+            
+            status.textContent = "Cliquez pour écouter 30 secondes";
+        }
+
+        // Afficher le lecteur pour écouter la chanson complète
+        function showFullPlayer() {
+            if (!currentSong) return;
+            
+            // Déterminer quelle plateforme utiliser pour la lecture
+            let embedUrl = '';
+            
+            if (currentSong.external_urls.spotify) {
+                // Extraire l'ID de la chanson Spotify
+                const spotifyUrl = currentSong.external_urls.spotify;
+                const spotifyId = spotifyUrl.split('/track/')[1]?.split('?')[0];
+                
+                if (spotifyId) {
+                    embedUrl = `https://open.spotify.com/embed/track/${spotifyId}?utm_source=generator&theme=0`;
+                }
+            } else if (currentSong.external_urls.youtube) {
+                // Pour YouTube, nous utiliserons une URL de recherche
+                embedUrl = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(currentSong.title + ' ' + currentSong.artist)}`;
+            } else if (currentSong.external_urls.deezer) {
+                // Extraire l'ID de la chanson Deezer
+                const deezerUrl = currentSong.external_urls.deezer;
+                const deezerId = deezerUrl.split('track/')[1];
+                
+                if (deezerId) {
+                    embedUrl = `https://widget.deezer.com/widget/auto/track/${deezerId}`;
+                }
+            }
+            
+            if (embedUrl) {
+                // Créer l'iframe
+                const iframe = document.createElement('iframe');
+                iframe.src = embedUrl;
+                iframe.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
+                iframe.loading = "lazy";
+                
+                // Vider le conteneur et ajouter l'iframe
+                fullPlayerContainer.innerHTML = '';
+                fullPlayerContainer.appendChild(iframe);
+                
+                // Afficher le lecteur
+                fullPlayer.style.display = "block";
+                
+                // Scroll jusqu'au lecteur
+                setTimeout(() => {
+                    fullPlayer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 300);
+            } else {
+                // Pas d'URL d'embed disponible
+                showToast("Impossible de charger le lecteur complet pour cette chanson");
+            }
+        }
+        // Enregistrer une chanson à partir du lecteur
+        function toggleSongRecording() {
+            if (isRecordingSong) {
+                stopSongRecording();
+            } else {
+                startSongRecording();
+            }
+        }
+
+        // Démarrer l'enregistrement d'une chanson
+        async function startSongRecording() {
+            try {
+                // Vérifier s'il y a un audio en cours de lecture
+                if (!audioPlayer.src || audioPlayer.paused) {
+                    showToast("Veuillez lancer la lecture de l'aperçu d'abord");
+                    return;
+                }
+                
+                // Accéder au flux audio de la sortie système (cette partie dépend du navigateur)
+                const audioStream = await navigator.mediaDevices.getDisplayMedia({ 
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    },
+                    video: false
+                });
+                
+                // Créer un nouvel enregistreur
+                const options = { mimeType: getSupportedMimeType() };
+                audioRecorder = new MediaRecorder(audioStream, options);
+                
+                songAudioChunks = [];
+                
+                audioRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        songAudioChunks.push(event.data);
+                    }
+                };
+                
+                audioRecorder.onstop = () => {
+                    // Arrêter le flux
+                    audioStream.getTracks().forEach(track => track.stop());
+                    
+                    // Créer un blob audio
+                    const audioBlob = new Blob(songAudioChunks, { type: getSupportedMimeType() });
+                    
+                    // Télécharger automatiquement l'enregistrement
+                    saveSongRecording(audioBlob);
+                };
+                
+                // Démarrer l'enregistrement
+                audioRecorder.start();
+                isRecordingSong = true;
+                
+                // Modifier le bouton
+                recordSongBtn.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="6" y="6" width="12" height="12"></rect>
+                    </svg>
+                    Arrêter l'enregistrement
+                `;
+                
+                showToast("Enregistrement de la chanson en cours...");
+                
+            } catch (error) {
+                console.error("Erreur lors de l'enregistrement de la chanson:", error);
+                showToast("Erreur lors de l'enregistrement de la chanson");
+            }
+        }
+
+        // Arrêter l'enregistrement d'une chanson
+        function stopSongRecording() {
+            if (!isRecordingSong || !audioRecorder) return;
+            
+            try {
+                audioRecorder.stop();
+                isRecordingSong = false;
+                
+                // Restaurer le bouton
+                recordSongBtn.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    Enregistrer la chanson
+                `;
+                
+            } catch (error) {
+                console.error("Erreur lors de l'arrêt de l'enregistrement:", error);
+                showToast("Erreur lors de l'arrêt de l'enregistrement");
+            }
+        }
+        // Sauvegarder l'enregistrement de la chanson
+        function saveSongRecording(audioBlob) {
+            if (!audioBlob) return;
+            
+            try {
+                // Créer un nom de fichier significatif
+                let fileName = "song_recording";
+                
+                // Si une chanson a été identifiée, utiliser son nom
+                if (currentSong && currentSong.title && currentSong.artist) {
+                    fileName = `${currentSong.artist} - ${currentSong.title}`.replace(/[^a-z0-9\s-]/gi, '');
+                }
+                
+                // Ajouter la date et l'heure
+                const date = new Date();
+                const timestamp = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}`;
+                fileName = `${fileName}_${timestamp}.${selectedFormat}`;
+                
+                // Créer un lien de téléchargement et déclencher le téléchargement
+                const downloadUrl = URL.createObjectURL(audioBlob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Nettoyer
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(downloadUrl);
+                }, 100);
+                
+                showToast("Chanson enregistrée avec succès");
+                
+            } catch (error) {
+                console.error("Erreur lors de la sauvegarde de la chanson:", error);
+                showToast("Erreur lors de la sauvegarde de la chanson");
+            }
+        }
+
+        // Sauvegarder l'enregistrement dans le format sélectionné
+        async function saveRecording() {
+            if (!recordedAudioBlob) {
+                showToast("Erreur : Aucun enregistrement disponible");
+                return;
+            }
+            
+            try {
+                // Déterminer le format de sortie
+                let outputMimeType;
+                let fileExtension;
+                let targetBlob = recordedAudioBlob;
+                
+                switch (selectedFormat) {
+                    case 'mp3':
+                        outputMimeType = 'audio/mpeg';
+                        fileExtension = 'mp3';
+                        break;
+                    case 'wav':
+                        outputMimeType = 'audio/wav';
+                        fileExtension = 'wav';
+                        break;
+                    case 'mp4':
+                        outputMimeType = 'audio/mp4';
+                        fileExtension = 'm4a';
+                        break;
+                    default:
+                        outputMimeType = 'audio/mpeg';
+                        fileExtension = 'mp3';
+                }
+                
+                // Créer un nom de fichier significatif
+                let fileName = "recording";
+                
+                // Si une chanson a été identifiée, utiliser son nom
+                if (currentSong && currentSong.title && currentSong.artist) {
+                    fileName = `${currentSong.artist} - ${currentSong.title}`.replace(/[^a-z0-9\s-]/gi, '');
+                }
+                
+                // Ajouter la date et l'heure
+                const date = new Date();
+                const timestamp = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}-${date.getMinutes().toString().padStart(2, '0')}`;
+                fileName = `${fileName}_${timestamp}.${fileExtension}`;
+                
+                // Créer un lien de téléchargement et déclencher le téléchargement
+                const downloadUrl = URL.createObjectURL(targetBlob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Nettoyer
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(downloadUrl);
+                }, 100);
+                
+                // Afficher un message de succès
+                showToast(`Enregistrement sauvegardé en ${selectedFormat.toUpperCase()}`);
+                
+            } catch (error) {
+                console.error("Erreur lors de la sauvegarde:", error);
+                showToast("Erreur lors de la sauvegarde de l'enregistrement");
+            }
+        }
+        // Afficher un message toast
+        function showToast(message) {
+            toastMessage.textContent = message;
+            toast.style.display = 'flex';
+            
+            // Cacher le toast après 3 secondes
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // Fonction pour gérer l'upload de fichier audio
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Afficher le nom du fichier
+            fileNameDisplay.textContent = file.name;
+            fileNameDisplay.style.display = 'block';
+            
+            // Vérifier la taille du fichier (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert("Le fichier est trop volumineux. La limite est de 5MB.");
+                return;
+            }
+            
+            // Cacher les éléments précédents
+            resultContainer.style.display = "none";
+            noResult.style.display = "none";
+            errorMessage.style.display = "none";
+            
+            // Afficher le loader
+            status.textContent = "Analyse en cours...";
+            loader.style.display = "block";
+            
+            try {
+                await identifySongWithAudD(file);
+            } catch (error) {
+                console.error("Erreur lors de l'identification:", error);
+                status.textContent = "Erreur lors de l'identification.";
+                errorMessage.style.display = 'block';
+                loader.style.display = "none";
+            }
+            
+            // Réinitialiser l'input pour permettre de charger le même fichier plusieurs fois
+            fileInput.value = "";
+        }
+
+        // Fonction pour identifier la chanson via AudD
+        async function identifySongWithAudD(audioData) {
+            try {
+                // Créer un objet FormData pour envoyer la requête
+                const formData = new FormData();
+                formData.append('api_token', AUDD_API_TOKEN);
+                formData.append('file', audioData);
+                formData.append('return', 'spotify,apple_music,deezer');
+                
+                // Envoyer la requête à l'API AudD
+                const response = await fetch(AUDD_API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Réinitialiser l'affichage du nom de fichier
+                fileNameDisplay.style.display = 'none';
+                
+                // Vérifier si la réponse contient un résultat
+                if (data.status === 'success' && data.result) {
+                    // Construire l'objet chanson à partir de la réponse
+                    const song = {
+                        title: data.result.title,
+                        artist: data.result.artist,
+                        album: data.result.album || 'Album inconnu',
+                        release_date: data.result.release_date || '',
+                        label: data.result.label || '',
+                        album_art: data.result.album_art || null,
+                        preview_url: null,
+                        external_urls: {},
+                        download_url: null
+                    };
+                    // Construire les liens de streaming
+                    if (data.result.spotify) {
+                        song.external_urls.spotify = data.result.spotify.external_urls.spotify;
+                        // Utiliser la preview URL si disponible
+                        if (data.result.spotify.preview_url) {
+                            song.preview_url = data.result.spotify.preview_url;
+                        }
+                        // Utiliser la pochette d'album Spotify si pas d'album_art
+                        if (!song.album_art && data.result.spotify.album.images && data.result.spotify.album.images.length > 0) {
+                            song.album_art = data.result.spotify.album.images[0].url;
+                        }
+                    }
+                    
+                    if (data.result.apple_music) {
+                        song.external_urls.apple_music = data.result.apple_music.url;
+                        // Utiliser la pochette d'album Apple Music si pas d'album_art
+                        if (!song.album_art && data.result.apple_music.artwork_url) {
+                            song.album_art = data.result.apple_music.artwork_url.replace('{w}', '300').replace('{h}', '300');
+                        }
+                    }
+                    
+                    if (data.result.deezer) {
+                        song.external_urls.deezer = data.result.deezer.link;
+                        // Utiliser la preview URL de Deezer si aucune n'est disponible
+                        if (!song.preview_url && data.result.deezer.preview) {
+                            song.preview_url = data.result.deezer.preview;
+                        }
+                        // Utiliser la pochette d'album Deezer si pas d'album_art
+                        if (!song.album_art && data.result.deezer.album.cover_xl) {
+                            song.album_art = data.result.deezer.album.cover_xl;
+                        }
+                    }
+                    
+                    // Construire l'URL YouTube basée sur le titre et l'artiste
+                    const searchQuery = encodeURIComponent(`${song.artist} ${song.title} official`);
+                    song.external_urls.youtube = `https://www.youtube.com/results?search_query=${searchQuery}`;
+                    
+                    // Utiliser une image par défaut si aucune pochette n'est trouvée
+                    if (!song.album_art) {
+                        song.album_art = 'https://via.placeholder.com/300x300?text=No+Image';
+                    }
+                    
+                    // Mettre à jour l'interface avec les résultats
+                    displayResult(song);
+                } else {
+                    // Aucun résultat trouvé
+                    status.textContent = "Cliquez pour écouter 30 secondes";
+                    loader.style.display = "none";
+                    noResult.style.display = "block";
+                }
+            } catch (error) {
+                console.error("Erreur lors de l'identification:", error);
+                status.textContent = "Erreur lors de l'identification.";
+                errorMessage.style.display = 'block';
+                loader.style.display = "none";
+            }
+        }
+
+        // Afficher le résultat de la recherche
+        function displayResult(song) {
+            currentSong = song;
+            
+            albumArt.src = song.album_art;
+            songTitle.textContent = song.title;
+            artist.textContent = song.artist;
+            
+            // Formater l'information de l'album
+            let albumText = song.album;
+            if (song.release_date) {
+                albumText += ` • ${song.release_date.substring(0, 4)}`;
+            }
+            album.textContent = albumText;
+            
+            // Mettre à jour les liens de streaming
+            updateStreamingLinks(song.external_urls);
+            
+            // Afficher les résultats
+            loader.style.display = "none";
+            resultContainer.style.display = "block";
+            status.textContent = "Chanson identifiée !";
+            
+            // Configurer le lecteur audio si un aperçu est disponible
+            if (song.preview_url) {
+                audioPlayer.src = song.preview_url;
+                playButton.disabled = false;
+            } else {
+                playButton.disabled = true;
+            }
+            
+            // Afficher le lien de téléchargement si disponible
+            if (song.download_url) {
+                downloadLink.href = song.download_url;
+                downloadLink.style.display = 'block';
+            } else {
+                downloadLink.style.display = 'none';
+            }
+            
+            // Ajouter à l'historique
+            addToHistory(song);
+        }
+        // Ajouter une chanson à l'historique
+        function addToHistory(song) {
+            // Vérifier si la chanson est déjà dans l'historique
+            const existingIndex = searchHistory.findIndex(item => 
+                item.title === song.title && item.artist === song.artist
+            );
+            
+            if (existingIndex !== -1) {
+                // Supprimer l'entrée existante
+                searchHistory.splice(existingIndex, 1);
+            }
+            
+            // Ajouter la nouvelle entrée au début
+            searchHistory.unshift(song);
+            
+            // Limiter l'historique à 10 éléments
+            if (searchHistory.length > 10) {
+                searchHistory.pop();
+            }
+            
+            // Sauvegarder dans le stockage local
+            localStorage.setItem('searchHistory', JSON.stringify(searchHistory));
+            
+            // Mettre à jour l'affichage
+            renderHistory();
+        }
+
+        // Mettre à jour les liens de streaming
+        function updateStreamingLinks(urls) {
+            streamingLinks.innerHTML = '';
+            
+            if (urls.spotify) {
+                const spotifyLink = createStreamingLink(
+                    urls.spotify,
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>',
+                    'Spotify'
+                );
+                streamingLinks.appendChild(spotifyLink);
+            }
+            
+            if (urls.apple_music) {
+                const appleLink = createStreamingLink(
+                    urls.apple_music,
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>',
+                    'Apple Music'
+                );
+                streamingLinks.appendChild(appleLink);
+            }
+            
+            if (urls.youtube) {
+                const youtubeLink = createStreamingLink(
+                    urls.youtube,
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19c-2.3 0-6.4-.2-8.1-.6-.7-.2-1.2-.7-1.4-1.4-.3-1.1-.5-3.4-.5-5s.2-3.9.5-5c.2-.7.7-1.2 1.4-1.4C5.6 5.2 9.7 5 12 5s6.4.2 8.1.6c.7.2 1.2.7 1.4 1.4.3 1.1.5 3.4.5 5s-.2 3.9-.5 5c-.2.7-.7 1.2-1.4 1.4-1.7.4-5.8.6-8.1.6z"></path><polygon points="10 15 15 12 10 9 10 15"></polygon></svg>',
+                    'YouTube'
+                );
+                streamingLinks.appendChild(youtubeLink);
+            }
+            
+            if (urls.deezer) {
+                const deezerLink = createStreamingLink(
+                    urls.deezer,
+                    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"></path><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"></path></svg>',
+                    'Deezer'
+                );
+                streamingLinks.appendChild(deezerLink);
+            }
+        }
+
+        // Créer un lien de streaming
+        function createStreamingLink(url, iconSvg, text) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.className = 'streaming-link';
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.innerHTML = `${iconSvg} ${text}`;
+            return link;
+        }
+
+        // Fonction pour lire/mettre en pause l'aperçu
+        function togglePlay() {
+            if (!currentSong || !currentSong.preview_url) {
+                return;
+            }
+            
+            if (isPlaying) {
+                // Mettre en pause
+                audioPlayer.pause();
+                isPlaying = false;
+                playButton.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+            } else {
+                // Jouer
+                audioPlayer.play().catch(error => {
+                    console.error("Erreur lors de la lecture:", error);
+                });
+                isPlaying = true;
+                playButton.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+            }
+        }
+        // Fonction pour afficher l'historique
+        function renderHistory() {
+            historyList.innerHTML = '';
+            
+            searchHistory.forEach(song => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <img src="${song.album_art || song.albumArt || 'https://via.placeholder.com/50x50?text=No+Image'}" alt="${song.title}">
+                    <div class="history-item-info">
+                        <h4>${song.title}</h4>
+                        <p>${song.artist}</p>
+                    </div>
+                `;
+                
+                historyItem.addEventListener('click', () => {
+                    // Afficher les détails de la chanson lors du clic
+                    displayResult(song);
+                    
+                    // Faire défiler vers le haut
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+                
+                historyList.appendChild(historyItem);
+            });
+            
+            // Afficher un message si l'historique est vide
+            if (searchHistory.length === 0) {
+                historyList.innerHTML = '<p style="color: var(--text-light); text-align: center; width: 100%;">Votre historique est vide</p>';
+            }
+        }
+
+        // Fonction pour basculer le thème
+        function toggleTheme() {
+            document.body.classList.toggle('dark-theme');
+            
+            if (document.body.classList.contains('dark-theme')) {
+                themeToggle.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                themeToggle.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Fonction pour animer le visualiseur
+        function startVisualizer() {
+            visualizerInterval = setInterval(() => {
+                bars.forEach(bar => {
+                    const height = Math.floor(Math.random() * 60) + 3;
+                    bar.style.height = `${height}px`;
+                });
+            }, 100);
+        }
+
+        // Fonction pour arrêter l'animation du visualiseur
+        function stopVisualizer() {
+            clearInterval(visualizerInterval);
+            bars.forEach(bar => {
+                bar.style.height = "3px";
+            });
+        }
+
+        // Vérifier et appliquer le thème enregistré
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-theme');
+            themeToggle.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+        }
+
+        // Enregistrement du service worker pour PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('ServiceWorker enregistré avec succès:', registration.scope);
+                }).catch(error => {
+                    console.log('Échec enregistrement ServiceWorker:', error);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
